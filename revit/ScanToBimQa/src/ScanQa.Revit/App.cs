@@ -103,6 +103,10 @@ namespace ScanQa.Revit
                 }
                 else
                 {
+                    // A minimized owned form does not come back with Activate() alone.
+                    if (App.Window.WindowState == System.Windows.Forms.FormWindowState.Minimized)
+                        App.Window.WindowState = System.Windows.Forms.FormWindowState.Normal;
+                    App.Window.Show();
                     App.Window.Activate();
                 }
                 App.Window.RefreshInputs(commandData.Application);

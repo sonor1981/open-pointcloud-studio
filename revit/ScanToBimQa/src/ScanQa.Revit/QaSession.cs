@@ -10,37 +10,79 @@ using ScanQa.Core.Qa;
 
 namespace ScanQa.Revit
 {
+    internal static class Discipline
+    {
+        public const string Architecture = "Architecture";
+        public const string Structure = "Structure";
+        public const string Mep = "MEP";
+        public static readonly string[] All = { Architecture, Structure, Mep };
+    }
+
     internal sealed class CategoryOption
     {
         public BuiltInCategory Category { get; }
         public string Label { get; }
+        public string Discipline { get; }
         public bool DefaultOn { get; }
 
-        public CategoryOption(BuiltInCategory c, string label, bool on)
+        public CategoryOption(BuiltInCategory c, string label, string discipline, bool on)
         {
             Category = c;
             Label = label;
+            Discipline = discipline;
             DefaultOn = on;
         }
 
-        public override string ToString() => Label;
+        public override string ToString() => $"{Label}  [{(Discipline == ScanQa.Revit.Discipline.Mep ? "MEP" : Discipline.Substring(0, 4))}]";
 
         public static readonly CategoryOption[] All =
         {
-            new CategoryOption(BuiltInCategory.OST_PipeCurves, "Pipes", true),
-            new CategoryOption(BuiltInCategory.OST_PipeFitting, "Pipe Fittings", true),
-            new CategoryOption(BuiltInCategory.OST_DuctCurves, "Ducts", true),
-            new CategoryOption(BuiltInCategory.OST_DuctFitting, "Duct Fittings", true),
-            new CategoryOption(BuiltInCategory.OST_PipeAccessory, "Pipe Accessories", false),
-            new CategoryOption(BuiltInCategory.OST_DuctAccessory, "Duct Accessories", false),
-            new CategoryOption(BuiltInCategory.OST_FlexPipeCurves, "Flex Pipes", false),
-            new CategoryOption(BuiltInCategory.OST_FlexDuctCurves, "Flex Ducts", false),
-            new CategoryOption(BuiltInCategory.OST_Conduit, "Conduits", false),
-            new CategoryOption(BuiltInCategory.OST_ConduitFitting, "Conduit Fittings", false),
-            new CategoryOption(BuiltInCategory.OST_CableTray, "Cable Trays", false),
-            new CategoryOption(BuiltInCategory.OST_CableTrayFitting, "Cable Tray Fittings", false),
-            new CategoryOption(BuiltInCategory.OST_MechanicalEquipment, "Mechanical Equipment", false),
+            new CategoryOption(BuiltInCategory.OST_Walls, "Walls", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_Floors, "Floors", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_Ceilings, "Ceilings", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_Roofs, "Roofs", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_Doors, "Doors", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_Windows, "Windows", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_Stairs, "Stairs", ScanQa.Revit.Discipline.Architecture, true),
+            new CategoryOption(BuiltInCategory.OST_StairsRailing, "Railings", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_CurtainWallPanels, "Curtain Panels", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_CurtainWallMullions, "Curtain Wall Mullions", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_Columns, "Columns (architectural)", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_GenericModel, "Generic Models", ScanQa.Revit.Discipline.Architecture, false),
+            new CategoryOption(BuiltInCategory.OST_StructuralColumns, "Structural Columns", ScanQa.Revit.Discipline.Structure, true),
+            new CategoryOption(BuiltInCategory.OST_StructuralFraming, "Structural Framing", ScanQa.Revit.Discipline.Structure, true),
+            new CategoryOption(BuiltInCategory.OST_StructuralFoundation, "Structural Foundations", ScanQa.Revit.Discipline.Structure, false),
+            new CategoryOption(BuiltInCategory.OST_PipeCurves, "Pipes", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_PipeFitting, "Pipe Fittings", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_DuctCurves, "Ducts", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_DuctFitting, "Duct Fittings", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_PipeAccessory, "Pipe Accessories", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_DuctAccessory, "Duct Accessories", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_FlexPipeCurves, "Flex Pipes", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_FlexDuctCurves, "Flex Ducts", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_Conduit, "Conduits", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_ConduitFitting, "Conduit Fittings", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_CableTray, "Cable Trays", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_CableTrayFitting, "Cable Tray Fittings", ScanQa.Revit.Discipline.Mep, true),
+            new CategoryOption(BuiltInCategory.OST_MechanicalEquipment, "Mechanical Equipment", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_PlumbingFixtures, "Plumbing Fixtures", ScanQa.Revit.Discipline.Mep, false),
+            new CategoryOption(BuiltInCategory.OST_ElectricalEquipment, "Electrical Equipment", ScanQa.Revit.Discipline.Mep, false),
         };
+
+        /// <summary>Discipline of an element: the category's, except walls and floors flagged structural.</summary>
+        public static string DisciplineOf(Element e)
+        {
+            var cat = e.Category == null ? BuiltInCategory.INVALID : (BuiltInCategory)RevitConvert.ToLong(e.Category.Id);
+            var option = All.FirstOrDefault(o => o.Category == cat);
+            if (cat == BuiltInCategory.OST_Walls || cat == BuiltInCategory.OST_Floors)
+            {
+                var p = e.get_Parameter(cat == BuiltInCategory.OST_Walls
+                    ? BuiltInParameter.WALL_STRUCTURAL_SIGNIFICANT
+                    : BuiltInParameter.FLOOR_PARAM_IS_STRUCTURAL);
+                if (p != null && p.HasValue && p.AsInteger() == 1) return ScanQa.Revit.Discipline.Structure;
+            }
+            return option?.Discipline ?? "";
+        }
     }
 
     internal sealed class CloudOption
@@ -58,6 +100,8 @@ namespace ScanQa.Revit
         public bool SelectionOnly { get; set; }
         public bool InsulationAsSurface { get; set; } = true;
         public bool LinkedModelsAsContext { get; set; } = true;
+        /// <summary>Elements of the chosen categories in linked models are checked too (else they are context only).</summary>
+        public bool CheckLinkedElements { get; set; } = true;
         public double SpacingMm { get; set; } = 5;
         public int MaxPoints { get; set; } = 2_000_000;
         public QaSettings Settings { get; set; } = new QaSettings();
@@ -88,10 +132,23 @@ namespace ScanQa.Revit
         {
             var v = ActiveCheckView(app, out _) ?? app.ActiveUIDocument?.ActiveView as View3D;
             if (v == null) return new List<CloudOption>();
-            return new FilteredElementCollector(v.Document, v.Id)
-                .OfClass(typeof(PointCloudInstance))
-                .Cast<PointCloudInstance>()
+            return CloudsIn(v)
                 .Select(c => new CloudOption { Id = RevitConvert.ToLong(c.Id), Name = c.Name })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Point clouds shown in the view. A cloud hidden only with Temporary Hide/Isolate still counts, so the
+        /// user can hide the scan colours to read the heatmap and still run the check.
+        /// </summary>
+        public static List<PointCloudInstance> CloudsIn(View3D v)
+        {
+            var visible = new FilteredElementCollector(v.Document, v.Id).OfClass(typeof(PointCloudInstance))
+                .Cast<PointCloudInstance>().ToList();
+            if (visible.Count > 0 || !v.IsInTemporaryViewMode(TemporaryViewMode.TemporaryHideIsolate)) return visible;
+            return new FilteredElementCollector(v.Document).OfClass(typeof(PointCloudInstance))
+                .Cast<PointCloudInstance>()
+                .Where(c => !c.IsHidden(v))
                 .ToList();
         }
 
@@ -112,7 +169,7 @@ namespace ScanQa.Revit
             var outline = new Outline(RevitConvert.ToXyz(region.Min), RevitConvert.ToXyz(region.Max));
 
             // 1. Points.
-            var clouds = new FilteredElementCollector(doc, view.Id).OfClass(typeof(PointCloudInstance)).Cast<PointCloudInstance>()
+            var clouds = CloudsIn(view)
                 .Where(c => req.CloudIds.Count == 0 || req.CloudIds.Contains(RevitConvert.ToLong(c.Id)))
                 .ToList();
             if (clouds.Count == 0) throw new InvalidOperationException("No linked point cloud is visible in this 3D view.");
@@ -138,7 +195,7 @@ namespace ScanQa.Revit
             {
                 var sel = new HashSet<long>(uidoc.Selection.GetElementIds().Select(RevitConvert.ToLong));
                 targets = targets.Where(e => sel.Contains(RevitConvert.ToLong(e.Id))).ToList();
-                if (targets.Count == 0) throw new InvalidOperationException("None of the selected elements is in the chosen categories inside the section box.");
+                if (targets.Count == 0 && !req.CheckLinkedElements) throw new InvalidOperationException("None of the selected elements is in the chosen categories inside the section box.");
             }
             var targetIds = new HashSet<long>(targets.Select(e => RevitConvert.ToLong(e.Id)));
             var elements = new List<QaElement>();
@@ -146,6 +203,7 @@ namespace ScanQa.Revit
             foreach (var e in targets)
             {
                 var qa = ModelGeometry.ToQaElement(e, ElementRole.Target, null);
+                qa.Discipline = CategoryOption.DisciplineOf(e);
                 if (req.InsulationAsSurface)
                 {
                     foreach (var insId in ModelGeometry.InsulationOf(doc, e))
@@ -177,9 +235,10 @@ namespace ScanQa.Revit
                 contextCount++;
             }
 
-            int linkedCount = 0;
-            if (req.LinkedModelsAsContext)
+            int linkedCount = 0, linkedTargets = 0;
+            if (req.LinkedModelsAsContext || req.CheckLinkedElements)
             {
+                var categorySet = new HashSet<long>(req.Categories.Select(c => (long)c));
                 foreach (var link in new FilteredElementCollector(doc, view.Id).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>())
                 {
                     var linkDoc = link.GetLinkDocument();
@@ -190,14 +249,44 @@ namespace ScanQa.Revit
                     foreach (var c in box.ModelCorners()) linkBox = linkBox.Include(modelToLink.OfPoint(c));
                     linkBox = linkBox.Inflate(threshold);
                     var linkFilter = new BoundingBoxIntersectsFilter(new Outline(RevitConvert.ToXyz(linkBox.Min), RevitConvert.ToXyz(linkBox.Max)));
+                    string source = linkDoc.Title;
+                    long linkId = RevitConvert.ToLong(link.Id);
                     foreach (var e in new FilteredElementCollector(linkDoc).WhereElementIsNotElementType().WherePasses(linkFilter))
                     {
                         if (!IsContextCandidate(e)) continue;
-                        var qa = ModelGeometry.ToQaElement(e, ElementRole.Context, linkToModel);
+                        bool isTarget = req.CheckLinkedElements && categorySet.Contains(RevitConvert.ToLong(e.Category.Id));
+                        if (!isTarget && !req.LinkedModelsAsContext) continue;
+                        var qa = ModelGeometry.ToQaElement(e, isTarget ? ElementRole.Target : ElementRole.Context, linkToModel);
+                        if (isTarget)
+                        {
+                            qa.Discipline = CategoryOption.DisciplineOf(e);
+                            qa.Source = source;
+                            qa.LinkInstanceId = linkId;
+                            if (e is MEPCurve)
+                            {
+                                var ax = ModelGeometry.AxisOf(e);
+                                if (ax != null)
+                                {
+                                    var t = RevitConvert.ToRigid(linkToModel);
+                                    qa.Axis = new LinearAxis(t.OfPoint(ax.Start), t.OfPoint(ax.End));
+                                }
+                            }
+                            var linkRigid = RevitConvert.ToRigid(linkToModel);
+                            qa.OpenEnds.AddRange(ModelGeometry.OpenEndsOf(e).Select(linkRigid.OfPoint));
+                            if (req.InsulationAsSurface)
+                                foreach (var insId in ModelGeometry.InsulationOf(linkDoc, e))
+                                {
+                                    var ins = linkDoc.GetElement(insId);
+                                    if (ins != null) ModelGeometry.AddTriangles(ins, linkToModel, qa.Triangles);
+                                }
+                        }
+                        else
+                        {
+                            qa.Id = -1; // context from a link is never listed
+                        }
                         if (qa.Triangles.Count == 0) continue;
-                        qa.Id = -1; // not selectable in the host model
                         elements.Add(qa);
-                        linkedCount++;
+                        if (isTarget) linkedTargets++; else linkedCount++;
                     }
                 }
             }
@@ -207,7 +296,7 @@ namespace ScanQa.Revit
             outcome.Result = QaEngine.Run(points, elements, req.Settings, box);
             long tQa = sw.ElapsedMilliseconds;
 
-            outcome.Notes.Add($"{targets.Count} QA elements, {contextCount} context elements" +
+            outcome.Notes.Add($"{targets.Count} QA elements in the host, {linkedTargets} in linked models, {contextCount} context elements" +
                               (req.LinkedModelsAsContext ? $", {linkedCount} linked context elements" : "") +
                               $", {points.Count:N0} scan points.");
             outcome.Notes.Add($"Time: points {tPoints / 1000.0:0.0} s, geometry {(tGeometry - tPoints) / 1000.0:0.0} s, QA {(tQa - tGeometry) / 1000.0:0.0} s.");
@@ -233,18 +322,31 @@ namespace ScanQa.Revit
             return !NonPhysical.Contains((BuiltInCategory)RevitConvert.ToLong(cat.Id));
         }
 
-        /// <summary>Selects an element and frames it in the checked view.</summary>
-        public static void ZoomTo(UIApplication app, long viewId, Aabb frame, long? selectId)
+        /// <summary>Selects an element (host or linked) and frames the given box in the checked view.</summary>
+        public static void ZoomTo(UIApplication app, long viewId, Aabb frame, long? selectId, long? linkInstanceId = null)
         {
             var uidoc = app.ActiveUIDocument;
             if (uidoc == null) return;
-            if (selectId.HasValue && selectId.Value > 0)
-                uidoc.Selection.SetElementIds(new List<ElementId> { RevitConvert.ToId(selectId.Value) });
+            Select(uidoc, selectId, linkInstanceId);
             var uiView = uidoc.GetOpenUIViews().FirstOrDefault(v => RevitConvert.ToLong(v.ViewId) == viewId);
             if (uiView == null) throw new InvalidOperationException("The checked 3D view is no longer open.");
             if (RevitConvert.ToLong(uidoc.ActiveView.Id) != viewId)
                 uidoc.ActiveView = uidoc.Document.GetElement(RevitConvert.ToId(viewId)) as View;
             uiView.ZoomAndCenterRectangle(RevitConvert.ToXyz(frame.Min), RevitConvert.ToXyz(frame.Max));
+        }
+
+        public static void Select(UIDocument uidoc, long? selectId, long? linkInstanceId)
+        {
+            if (!selectId.HasValue || selectId.Value <= 0) return;
+            if (!linkInstanceId.HasValue)
+            {
+                uidoc.Selection.SetElementIds(new List<ElementId> { RevitConvert.ToId(selectId.Value) });
+                return;
+            }
+            var link = uidoc.Document.GetElement(RevitConvert.ToId(linkInstanceId.Value)) as RevitLinkInstance;
+            var linked = link?.GetLinkDocument()?.GetElement(RevitConvert.ToId(selectId.Value));
+            if (linked == null) return;
+            uidoc.Selection.SetReferences(new List<Reference> { new Reference(linked).CreateLinkReference(link) });
         }
     }
 }

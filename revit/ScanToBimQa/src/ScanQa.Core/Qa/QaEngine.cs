@@ -121,6 +121,9 @@ namespace ScanQa.Core.Qa
                     ElementId = el.Id,
                     Category = el.Category,
                     Name = el.Name,
+                    Discipline = el.Discipline,
+                    Source = el.Source,
+                    LinkInstanceId = el.LinkInstanceId,
                     PointCount = d.Count,
                     Bounds = el.Bounds,
                     Coverage = coverage,
@@ -181,7 +184,7 @@ namespace ScanQa.Core.Qa
             out int samplesInRegion)
         {
             double cell = Units.MmToFeet(s.CoverageCellMm);
-            var samples = SurfaceSamples(el, cell)
+            var samples = SurfaceSamples(el, cell, region?.ModelAabb())
                 .Where(p => region == null || region.Contains(p))
                 .ToList();
             samplesInRegion = samples.Count;
@@ -217,12 +220,14 @@ namespace ScanQa.Core.Qa
         }
 
         /// <summary>Deterministic, roughly uniform samples over the element surface, about one per cell².</summary>
-        public static IEnumerable<Vec3> SurfaceSamples(QaElement el, double cell)
+        public static IEnumerable<Vec3> SurfaceSamples(QaElement el, double cell, Aabb? clip = null)
         {
             const double g1 = 0.7548776662466927, g2 = 0.5698402909980532; // R2 low-discrepancy sequence
             double cellArea = cell * cell;
             foreach (var t in el.Triangles)
             {
+                // Large slabs and walls reach far beyond the check region: skip triangles outside it.
+                if (clip.HasValue && !clip.Value.Intersects(t.Bounds)) continue;
                 int count = Math.Max(1, (int)Math.Round(t.Area / cellArea));
                 for (int k = 0; k < count; k++)
                 {

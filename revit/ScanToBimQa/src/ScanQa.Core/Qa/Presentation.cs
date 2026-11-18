@@ -110,6 +110,10 @@ namespace ScanQa.Core.Qa
             rows.OrderBy(r => r.Status == QaStatus.Fail ? 0 : r.Status == QaStatus.InsufficientScanData ? 1 : 2)
                 .ThenByDescending(r => double.IsNaN(r.P95Mm) ? 0 : r.P95Mm);
 
+        /// <summary>Null or empty discipline keeps every row.</summary>
+        public static IEnumerable<ElementResult> ByDiscipline(IEnumerable<ElementResult> rows, string discipline) =>
+            string.IsNullOrEmpty(discipline) ? rows : rows.Where(r => r.Discipline == discipline);
+
         public static string StatusText(QaStatus s) =>
             s == QaStatus.InsufficientScanData ? "Insufficient Scan Data" : s.ToString();
     }
@@ -119,10 +123,12 @@ namespace ScanQa.Core.Qa
         public static string Elements(IEnumerable<ElementResult> rows)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("ElementId,Category,Name,Points,PercentWithinTolerance,P95Mm,MaxMm,Coverage,Status,Reason");
+            sb.AppendLine("Model,Discipline,ElementId,Category,Name,Points,PercentWithinTolerance,P95Mm,MaxMm,Coverage,Status,Reason");
             foreach (var r in rows)
             {
-                sb.Append(r.ElementId).Append(',')
+                sb.Append(Q(r.Source)).Append(',')
+                    .Append(Q(r.Discipline)).Append(',')
+                    .Append(r.ElementId).Append(',')
                     .Append(Q(r.Category)).Append(',')
                     .Append(Q(r.Name)).Append(',')
                     .Append(r.PointCount).Append(',')
@@ -139,13 +145,16 @@ namespace ScanQa.Core.Qa
         public static string Clusters(IEnumerable<MissingCluster> rows)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("ClusterId,Points,ExtentMm,CentroidXmm,CentroidYmm,CentroidZmm,NearOpenEndOfElementId,Note");
+            sb.AppendLine("ClusterId,Points,ExtentMm,CentroidXmm,CentroidYmm,CentroidZmm,MinXmm,MinYmm,MinZmm,MaxXmm,MaxYmm,MaxZmm,NearOpenEndOfElementId,Note");
             foreach (var c in rows)
             {
                 sb.Append(c.Id).Append(',').Append(c.PointCount).Append(',').Append(N(c.ExtentMm)).Append(',')
                     .Append(N(Units.FeetToMm(c.Centroid.X))).Append(',')
                     .Append(N(Units.FeetToMm(c.Centroid.Y))).Append(',')
                     .Append(N(Units.FeetToMm(c.Centroid.Z))).Append(',')
+                    .Append(N(Units.FeetToMm(c.Bounds.Min.X))).Append(',').Append(N(Units.FeetToMm(c.Bounds.Min.Y))).Append(',')
+                    .Append(N(Units.FeetToMm(c.Bounds.Min.Z))).Append(',').Append(N(Units.FeetToMm(c.Bounds.Max.X))).Append(',')
+                    .Append(N(Units.FeetToMm(c.Bounds.Max.Y))).Append(',').Append(N(Units.FeetToMm(c.Bounds.Max.Z))).Append(',')
                     .Append(c.NearOpenEndOfElementId?.ToString(CultureInfo.InvariantCulture) ?? "").Append(',')
                     .Append(Q(c.Note)).AppendLine();
             }

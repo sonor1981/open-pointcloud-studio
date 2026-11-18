@@ -42,6 +42,12 @@ namespace ScanQa.Core.Qa
         public string Category { get; set; } = "";
         public string Name { get; set; } = "";
         public ElementRole Role { get; set; } = ElementRole.Target;
+        /// <summary>Discipline of the category (Architecture, Structure, MEP), for filtering the results.</summary>
+        public string Discipline { get; set; } = "";
+        /// <summary>"Host" or the name of the linked model the element comes from.</summary>
+        public string Source { get; set; } = "Host";
+        /// <summary>Id of the RevitLinkInstance in the host model when the element comes from a link, else null.</summary>
+        public long? LinkInstanceId { get; set; }
         public List<Triangle> Triangles { get; } = new List<Triangle>();
 
         /// <summary>Set for straight pipes/ducts. Scan points beyond its ends are not attributed to the element.</summary>
@@ -83,6 +89,9 @@ namespace ScanQa.Core.Qa
         public long ElementId { get; set; }
         public string Category { get; set; } = "";
         public string Name { get; set; } = "";
+        public string Discipline { get; set; } = "";
+        public string Source { get; set; } = "Host";
+        public long? LinkInstanceId { get; set; }
         public int PointCount { get; set; }
         public double PercentWithinTolerance { get; set; }
         public double P95Mm { get; set; }

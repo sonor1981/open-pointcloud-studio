@@ -17,35 +17,44 @@ namespace ScanQa.Revit
 
     /// <summary>
     /// Reads points of a linked point cloud (.rcp/.rcs) inside the section box through
-    /// PointCloudInstance.GetPoints. Filter planes are built in cloud coordinates; returned points are moved to
-    /// the model with the instance transform and tested exactly against the (possibly rotated) section box.
+    /// PointCloudInstance.GetPoints. Verified in Revit 2026.5: the filter planes are taken in MODEL coordinates,
+    /// while the returned points are in the cloud's own coordinates (metres for .rcs, so the instance transform
+    /// carries a 3.2808 scale). Points are moved to the model with that transform and tested exactly against
+    /// the (possibly rotated) section box.
     /// </summary>
     internal static class PointCloudReader
     {
-        /// <summary>Points requested per GetPoints call. Larger regions are read in slabs.</summary>
-        private const int PointsPerCall = 1_000_000;
+        /// <summary>Points requested per GetPoints call (Revit 2026.5 rejects 1,000,000). Larger regions are read in slabs.</summary>
+        public const int PointsPerCall = 999_999;
+
+        [ThreadStatic] private static int NullReads;
 
         public static PointReadResult Read(PointCloudInstance cloud, OrientedBox sectionBox, double spacingMm, int maxPoints)
         {
+            NullReads = 0;
             var result = new PointReadResult();
             var cloudToModel = RevitConvert.ToRigid(cloud.GetTransform());
             int slabs = Math.Max(1, (int)Math.Ceiling((double)maxPoints / PointsPerCall));
-            int perSlab = Math.Max(1, maxPoints / slabs);
+            int perSlab = Math.Max(1, Math.Min(PointsPerCall, maxPoints / slabs));
             double spacing = Units.MmToFeet(spacingMm);
             int returned = 0;
-            bool usedModelPlanes = false;
+            bool usedCloudPlanes = false;
 
             foreach (var slab in Slabs(sectionBox, slabs))
             {
-                var local = ReadSlab(cloud, slab, cloudToModel, spacing, perSlab, cloudFrame: true, out int count);
+                var local = ReadSlab(cloud, slab, cloudToModel, spacing, perSlab, cloudFrame: false, out int count);
                 var inside = PointPreparation.ToModelInsideBox(local, cloudToModel, slab);
-                if (count > 0 && inside.Count == 0)
+                if (inside.Count == 0)
                 {
-                    // Safety net: if Revit expects the planes in model coordinates for this cloud, the cloud-frame
-                    // read lands outside the box. Read again with model-frame planes and keep what is inside.
-                    local = ReadSlab(cloud, slab, cloudToModel, spacing, perSlab, cloudFrame: false, out count);
-                    inside = PointPreparation.ToModelInsideBox(local, cloudToModel, slab);
-                    if (inside.Count > 0) usedModelPlanes = true;
+                    // Safety net for releases that would take the planes in cloud coordinates.
+                    local = ReadSlab(cloud, slab, cloudToModel, spacing, perSlab, cloudFrame: true, out int count2);
+                    var inside2 = PointPreparation.ToModelInsideBox(local, cloudToModel, slab);
+                    if (inside2.Count > 0)
+                    {
+                        usedCloudPlanes = true;
+                        inside = inside2;
+                        count = count2;
+                    }
                 }
                 returned += count;
                 result.ModelPoints.AddRange(inside);
@@ -53,8 +62,10 @@ namespace ScanQa.Revit
 
             result.Notes.Add($"{cloud.Name}: {returned:N0} points returned by Revit, {result.ModelPoints.Count:N0} inside the section box " +
                              $"(spacing {spacingMm:0.#} mm, {slabs} read(s)).");
-            if (usedModelPlanes) result.Notes.Add($"{cloud.Name}: filter planes were applied in model coordinates (fallback).");
-            if (returned >= maxPoints * 0.98)
+            if (NullReads > 0)
+                result.Notes.Add($"{cloud.Name}: Revit returned no point data for {NullReads} read(s); part of the box may be missing. Run Check again, or reduce Max points.");
+            if (usedCloudPlanes) result.Notes.Add($"{cloud.Name}: filter planes were applied in cloud coordinates (fallback).");
+            if (returned >= slabs * perSlab * 0.98)
                 result.Notes.Add($"{cloud.Name}: point limit reached — increase the limit or the spacing, or reduce the section box.");
             return result;
         }
@@ -68,9 +79,14 @@ namespace ScanQa.Revit
                 .Select(p => Plane.CreateByNormalAndOrigin(RevitConvert.ToXyz(p.Normal), RevitConvert.ToXyz(p.Origin)))
                 .ToList();
             PointCloudFilter filter = PointCloudFilterFactory.CreateMultiPlaneFilter(planes);
-            PointCollection points = cloud.GetPoints(filter, spacingFeet, numPoints);
-            var local = new List<Vec3>(points.Count);
-            foreach (CloudPoint cp in points) local.Add(new Vec3(cp.X, cp.Y, cp.Z));
+            // GetPoints can return null (seen in Revit 2026.5 on a sub-region after the view changed). Retry once.
+            PointCollection points = cloud.GetPoints(filter, spacingFeet, numPoints)
+                                     ?? cloud.GetPoints(filter, spacingFeet, numPoints);
+            var local = new List<Vec3>(points?.Count ?? 0);
+            if (points != null)
+                foreach (CloudPoint cp in points) local.Add(new Vec3(cp.X, cp.Y, cp.Z));
+            else
+                NullReads++;
             count = local.Count;
             return local;
         }

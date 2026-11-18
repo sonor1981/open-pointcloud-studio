@@ -18,7 +18,9 @@ namespace ScanQa.Revit.UI
 
         private readonly ComboBox _cloud = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
         private readonly Button _refresh = new Button { Text = "Refresh", Width = 80 };
-        private readonly CheckedListBox _categories = new CheckedListBox { CheckOnClick = true, Height = 96, Width = 260, MultiColumn = false };
+        private readonly CheckedListBox _categories = new CheckedListBox { CheckOnClick = true, Height = 150, Width = 300, MultiColumn = false };
+        private readonly CheckBox _checkLinks = new CheckBox { Text = "Check elements in linked models", AutoSize = true, Checked = true };
+        private readonly ComboBox _discipline = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly CheckBox _selectionOnly = new CheckBox { Text = "Selected elements only", AutoSize = true };
         private readonly CheckBox _insulation = new CheckBox { Text = "Insulation is the pipe/duct surface", AutoSize = true, Checked = true };
         private readonly CheckBox _links = new CheckBox { Text = "Linked models explain scan points", AutoSize = true, Checked = true };
@@ -28,7 +30,7 @@ namespace ScanQa.Revit.UI
         private readonly NumericUpDown _maxPoints = Num(10_000, 20_000_000, 2_000_000, 0, 100_000);
         private readonly NumericUpDown _minPoints = Num(1, 100_000, 30, 0);
         private readonly NumericUpDown _minCoverage = Num(0, 100, 25, 0);
-        private readonly NumericUpDown _minCluster = Num(1, 1_000_000, 50, 0);
+        private readonly NumericUpDown _minCluster = Num(1, 1_000_000, 30, 0);
         private readonly CheckBox _showHeat = new CheckBox { Text = "Show heatmap", AutoSize = true, Checked = true };
         private readonly CheckBox _showMissing = new CheckBox { Text = "Show Suspected Missing", AutoSize = true, Checked = true };
         private readonly FlowLayoutPanel _legend = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
@@ -55,6 +57,9 @@ namespace ScanQa.Revit.UI
             foreach (var c in CategoryOption.All) _categories.Items.Add(c, c.DefaultOn);
             _filter.Items.AddRange(new object[] { "Problems (Fail + Insufficient)", "All", "Fail", "Insufficient Scan Data", "Pass" });
             _filter.SelectedIndex = 0;
+            _discipline.Items.Add("All disciplines");
+            _discipline.Items.AddRange(Discipline.All);
+            _discipline.SelectedIndex = 0;
             _run.Font = new Font(Font, FontStyle.Bold);
 
             BuildLayout();
@@ -64,6 +69,7 @@ namespace ScanQa.Revit.UI
             _refresh.Click += (s, e) => _actions.Post(RefreshInputs);
             _export.Click += (s, e) => ExportCsv();
             _filter.SelectedIndexChanged += (s, e) => FillElements();
+            _discipline.SelectedIndexChanged += (s, e) => FillElements();
             _showHeat.CheckedChanged += (s, e) => ToggleLayers();
             _showMissing.CheckedChanged += (s, e) => ToggleLayers();
             _tolerance.ValueChanged += (s, e) => BuildLegend((double)_tolerance.Value);
@@ -99,7 +105,15 @@ namespace ScanQa.Revit.UI
 
             var cloudRow = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0) };
             cloudRow.Controls.AddRange(new Control[] { _cloud, _refresh });
-            var col1 = Stack(Caption("Point cloud"), cloudRow, Caption("Categories to check"), _categories, _selectionOnly, _insulation, _links);
+            var presets = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0) };
+            foreach (var (label, disc) in new[] { ("ARC", Discipline.Architecture), ("STR", Discipline.Structure), ("MEP", Discipline.Mep), ("All", "*"), ("None", "") })
+            {
+                var b = new Button { Text = label, Width = 52, Height = 24 };
+                b.Click += (s, e) => ApplyPreset(disc);
+                presets.Controls.Add(b);
+            }
+            var col1 = Stack(Caption("Point cloud"), cloudRow, Caption("Categories to check"), presets, _categories,
+                _selectionOnly, _checkLinks, _insulation, _links);
             var thresholds = new TableLayoutPanel { ColumnCount = 2, AutoSize = true };
             AddRow(thresholds, "Tolerance (mm)", _tolerance);
             AddRow(thresholds, "Missing threshold (mm)", _threshold);
@@ -121,7 +135,7 @@ namespace ScanQa.Revit.UI
             var zoom = new Button { Text = "Zoom to element", Width = 130 };
             select.Click += (s, e) => ZoomElement(false);
             zoom.Click += (s, e) => ZoomElement(true);
-            elementButtons.Controls.AddRange(new Control[] { Caption("Show"), _filter, select, zoom });
+            elementButtons.Controls.AddRange(new Control[] { Caption("Show"), _filter, _discipline, select, zoom });
 
             var clusterButtons = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
             var zoomCluster = new Button { Text = "Zoom to location", Width = 130 };
@@ -146,6 +160,8 @@ namespace ScanQa.Revit.UI
             Controls.Add(notes);
             Controls.Add(inputs);
 
+            _grid.Columns.Add("model", "Model");
+            _grid.Columns.Add("disc", "Discipline");
             _grid.Columns.Add("id", "Element ID");
             _grid.Columns.Add("cat", "Category");
             _grid.Columns.Add("name", "Type");
@@ -204,7 +220,8 @@ namespace ScanQa.Revit.UI
                 if (((CloudOption)_cloud.Items[i]).Id == previous) idx = i;
             _cloud.SelectedIndex = idx;
             QaSession.ActiveCheckView(app, out string problem);
-            _summary.Text = problem ?? "Ready. Adjust the section box, then Run Check.";
+            if (problem != null) _summary.Text = problem;
+            else if (_outcome == null) _summary.Text = "Ready. Adjust the section box, then Run Check.";
         }
 
         private QaRequest BuildRequest()
@@ -214,6 +231,7 @@ namespace ScanQa.Revit.UI
                 SelectionOnly = _selectionOnly.Checked,
                 InsulationAsSurface = _insulation.Checked,
                 LinkedModelsAsContext = _links.Checked,
+                CheckLinkedElements = _checkLinks.Checked,
                 SpacingMm = (double)_spacing.Value,
                 MaxPoints = (int)_maxPoints.Value,
                 Settings = new QaSettings
@@ -301,9 +319,11 @@ namespace ScanQa.Revit.UI
         {
             _grid.Rows.Clear();
             if (_outcome == null) return;
-            foreach (var e in ResultFilter.DefaultOrder(ResultFilter.Apply(_outcome.Result.Elements, CurrentFilter())))
+            string disc = _discipline.SelectedIndex <= 0 ? null : (string)_discipline.SelectedItem;
+            var rows = ResultFilter.ByDiscipline(ResultFilter.Apply(_outcome.Result.Elements, CurrentFilter()), disc);
+            foreach (var e in ResultFilter.DefaultOrder(rows))
             {
-                int i = _grid.Rows.Add(e.ElementId, e.Category, e.Name, e.PointCount,
+                int i = _grid.Rows.Add(e.Source, e.Discipline, e.ElementId, e.Category, e.Name, e.PointCount,
                     double.IsNaN(e.PercentWithinTolerance) ? "—" : e.PercentWithinTolerance.ToString("0.0", CultureInfo.CurrentCulture),
                     Mm(e.P95Mm), Mm(e.MaxMm), e.Coverage.ToString("P0", CultureInfo.CurrentCulture),
                     ResultFilter.StatusText(e.Status), e.Reason);
@@ -333,8 +353,8 @@ namespace ScanQa.Revit.UI
             var frame = ZoomTargets.ForElement(e);
             _actions.Post(app =>
             {
-                if (zoom) QaSession.ZoomTo(app, viewId, frame, e.ElementId);
-                else app.ActiveUIDocument.Selection.SetElementIds(new List<Autodesk.Revit.DB.ElementId> { RevitConvert.ToId(e.ElementId) });
+                if (zoom) QaSession.ZoomTo(app, viewId, frame, e.ElementId, e.LinkInstanceId);
+                else QaSession.Select(app.ActiveUIDocument, e.ElementId, e.LinkInstanceId);
             });
         }
 
@@ -344,6 +364,17 @@ namespace ScanQa.Revit.UI
             long viewId = _outcome.ViewId;
             var frame = ZoomTargets.ForCluster(c);
             _actions.Post(app => QaSession.ZoomTo(app, viewId, frame, c.NearOpenEndOfElementId));
+        }
+
+        private void ApplyPreset(string discipline)
+        {
+            for (int i = 0; i < _categories.Items.Count; i++)
+            {
+                var c = (CategoryOption)_categories.Items[i];
+                bool on = discipline == "*" || (discipline != "" && c.Discipline == discipline && c.DefaultOn);
+                if (discipline == "*") on = c.DefaultOn;
+                _categories.SetItemChecked(i, on);
+            }
         }
 
         private void ToggleLayers()

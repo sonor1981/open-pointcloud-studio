@@ -43,7 +43,7 @@ namespace ScanQa.Core.Qa
         public int MinPointsPerCell { get; set; } = 5;
 
         /// <summary>Smallest reported Suspected Missing cluster.</summary>
-        public int MinClusterPoints { get; set; } = 50;
+        public int MinClusterPoints { get; set; } = 30;
 
         /// <summary>Search distance from a cluster to an unconnected element end.</summary>
         public double OpenEndSearchMm { get; set; } = 600;
