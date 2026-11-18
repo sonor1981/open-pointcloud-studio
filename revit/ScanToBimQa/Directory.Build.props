@@ -1,0 +1,39 @@
+<Project>
+  <!--
+    Shared build settings for the Scan-to-BIM QA add-in.
+
+    RevitVersion selects the Revit API and the runtime:
+      2023, 2024        -> .NET Framework 4.8
+      2025, 2026, 2027  -> .NET 10 (the runtime of Revit 2025.5, 2026.5 and 2027.x, checked from the
+                           TargetFrameworkAttribute of RevitAPI.dll). Revit 2025.0-2025.4 and early 2026
+                           releases run .NET 8: build those with -p:RevitTargetFramework=net8.0 against
+                           that release's RevitAPI.dll.
+    RevitApiDir  folder holding RevitAPI.dll / RevitAPIUI.dll (default: the Revit install folder).
+    NetFxRefRoot folder holding .NETFramework\v4.8 reference assemblies (only needed off Windows).
+    WinFormsRefDir folder holding Windows Forms reference assemblies (only needed off Windows, .NET 10).
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <NuGetAudit>false</NuGetAudit>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Version>0.1.0</Version>
+    <Company>Open Pointcloud Studio contributors</Company>
+    <Product>Scan-to-BIM QA for Revit</Product>
+    <Copyright>LGPL-3.0-or-later</Copyright>
+
+    <RevitVersion Condition="'$(RevitVersion)' == ''">2026</RevitVersion>
+    <RevitTargetFramework Condition="'$(RevitTargetFramework)' == '' and ('$(RevitVersion)' == '2023' or '$(RevitVersion)' == '2024')">net48</RevitTargetFramework>
+    <RevitTargetFramework Condition="'$(RevitTargetFramework)' == ''">net10.0</RevitTargetFramework>
+    <!-- One intermediate folder per Revit version so the versions never share build state. -->
+    <BaseIntermediateOutputPath Condition="'$(MSBuildProjectName)' == 'ScanQa.Revit'">obj\Revit$(RevitVersion)\</BaseIntermediateOutputPath>
+    <RevitApiDir Condition="'$(RevitApiDir)' == ''">$(ProgramW6432)\Autodesk\Revit $(RevitVersion)</RevitApiDir>
+  </PropertyGroup>
+
+  <!-- Off Windows the .NET Framework 4.8 reference assemblies come from a copied folder. -->
+  <PropertyGroup Condition="'$(NetFxRefRoot)' != ''">
+    <TargetFrameworkRootPath>$(NetFxRefRoot)</TargetFrameworkRootPath>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Scan-to-BIM QA</Name>
+    <Assembly>ScanToBimQa\ScanQa.Revit.dll</Assembly>
+    <AddInId>3F0B6E6A-2C1D-4B8E-9A57-6D1C0E2F7A44</AddInId>
+    <FullClassName>ScanQa.Revit.App</FullClassName>
+    <VendorId>OPCS</VendorId>
+    <VendorDescription>Open Pointcloud Studio contributors</VendorDescription>
+  </AddIn>
+</RevitAddIns>

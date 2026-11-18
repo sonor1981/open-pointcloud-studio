@@ -508,6 +508,7 @@ It writes `native/target/open-cad-studio/release/OpenCADStudio`, where a develop
 | `docs/ecosystem.md` | The record of what is delivered for each system and how each part is verified |
 | `promo` | The feature video, its poster and stills, and the scripts that capture and render them |
 | `screenshots` | Pictures taken while the first native versions were developed; none of them shows the current interface |
+| `revit/ScanToBimQa` | Scan-to-BIM QA add-in for Autodesk Revit 2023–2027 (C#): deviation heatmap and Suspected Missing check against a linked point cloud; see its [README](revit/ScanToBimQa/README.md) |
 | `classic` | An earlier application, kept for reference and no longer developed |
 
 ## Licences

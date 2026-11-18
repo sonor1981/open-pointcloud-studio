@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Revit-independent QA engine: geometry, nearest-surface search, statistics, clustering. -->
+  <PropertyGroup>
+    <TargetFrameworks Condition="'$(CoreTargetFrameworks)' == ''">net48;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreTargetFrameworks)' != ''">$(CoreTargetFrameworks)</TargetFrameworks>
+    <RootNamespace>ScanQa.Core</RootNamespace>
+  </PropertyGroup>
+</Project>

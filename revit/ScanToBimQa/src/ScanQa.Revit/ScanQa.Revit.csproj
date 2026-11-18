@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Revit add-in. Build one Revit version at a time:
+      dotnet build -c Release -p:RevitVersion=2026
+    The output folder bin/<Configuration>/Revit<Version>/ and the package dist/ScanToBimQa-Revit<Version>.zip
+    hold ScanToBimQa.addin and the ScanToBimQa/ folder to copy into %AppData%\Autodesk\Revit\Addins\<Version>\.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RevitTargetFramework)</TargetFramework>
+    <RootNamespace>ScanQa.Revit</RootNamespace>
+    <AssemblyName>ScanQa.Revit</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\Revit$(RevitVersion)\</OutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
+    <DefineConstants Condition="$(RevitVersion) &gt;= 2024">$(DefineConstants);REVIT2024_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="$(RevitVersion) &gt;= 2025">$(DefineConstants);REVIT2025_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="$(RevitVersion) &gt;= 2026">$(DefineConstants);REVIT2026_OR_GREATER</DefineConstants>
+    <PackageDir>$(MSBuildThisFileDirectory)..\..\dist\</PackageDir>
+  </PropertyGroup>
+
+  <!-- Windows Forms: framework reference on Windows, reference assemblies from WinFormsRefDir elsewhere. -->
+  <PropertyGroup Condition="'$(RevitTargetFramework)' != 'net48' and '$(WinFormsRefDir)' != ''">
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != 'net48' and '$(WinFormsRefDir)' == ''">
+    <TargetFramework>$(RevitTargetFramework)-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(RevitTargetFramework)' != 'net48' and '$(WinFormsRefDir)' != ''">
+    <!-- RevitAPIUI of the .NET 10 releases references Windows Forms 10; older reference assemblies bind forward at run time. -->
+    <Reference Include="System.Windows.Forms" HintPath="$(WinFormsRefDir)\System.Windows.Forms.dll" Private="false" />
+    <Reference Include="System.Windows.Forms.Primitives" HintPath="$(WinFormsRefDir)\System.Windows.Forms.Primitives.dll" Private="false" />
+    <Reference Include="System.Drawing.Common" HintPath="$(WinFormsRefDir)\System.Drawing.Common.dll" Private="false" />
+    <Reference Include="System.Drawing" HintPath="$(WinFormsRefDir)\System.Drawing.dll" Private="false" />
+    <Reference Include="System.Private.Windows.Core" HintPath="$(WinFormsRefDir)\System.Private.Windows.Core.dll" Private="false" Condition="Exists('$(WinFormsRefDir)\System.Private.Windows.Core.dll')" />
+    <Reference Include="Microsoft.Win32.SystemEvents" HintPath="$(WinFormsRefDir)\Microsoft.Win32.SystemEvents.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(RevitTargetFramework)' != 'net48' and '$(WinFormsRefDir)' != ''">
+    <!-- Same marker the -windows target framework adds; Revit only runs on Windows. -->
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup Condition="'$(RevitTargetFramework)' == 'net48'">
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RevitAPI" HintPath="$(RevitApiDir)\RevitAPI.dll" Private="false" />
+    <Reference Include="RevitAPIUI" HintPath="$(RevitApiDir)\RevitAPIUI.dll" Private="false" />
+    <ProjectReference Include="..\ScanQa.Core\ScanQa.Core.csproj" UndefineProperties="RevitVersion;RevitApiDir;WinFormsRefDir" />
+    <None Include="ScanToBimQa.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Package layout: ScanToBimQa.addin + ScanToBimQa\*.dll, zipped per Revit version. -->
+  <Target Name="PackageAddin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <StageDir>$(PackageDir)Revit$(RevitVersion)\</StageDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <AddinBinaries Include="$(OutputPath)ScanQa.Revit.dll;$(OutputPath)ScanQa.Core.dll" />
+    </ItemGroup>
+    <RemoveDir Directories="$(StageDir)" />
+    <Copy SourceFiles="ScanToBimQa.addin" DestinationFolder="$(StageDir)" />
+    <Copy SourceFiles="@(AddinBinaries)" DestinationFolder="$(StageDir)ScanToBimQa\" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\README.md" DestinationFolder="$(StageDir)ScanToBimQa\" />
+    <Delete Files="$(PackageDir)ScanToBimQa-Revit$(RevitVersion).zip" />
+    <ZipDirectory SourceDirectory="$(StageDir)" DestinationFile="$(PackageDir)ScanToBimQa-Revit$(RevitVersion).zip" />
+    <Message Importance="high" Text="Package: $(PackageDir)ScanToBimQa-Revit$(RevitVersion).zip" />
+  </Target>
+</Project>
